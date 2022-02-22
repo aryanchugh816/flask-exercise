@@ -78,7 +78,7 @@ def show_user_based_on_team():
 @app.route('/users/createuser', methods = ['POST'])
 def createuser():
    data  = request.json
-   
+   print(data)
    return create_response(db.create("users",data))
 
 
