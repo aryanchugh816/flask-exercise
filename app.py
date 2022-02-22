@@ -2,12 +2,12 @@ from typing import Tuple
 
 from flask import Flask, jsonify, request, Response
 import mockdb.mockdb_interface as db
-
+import mockdb.dummy_data as users
 app = Flask(__name__)
 
 
 def create_response(
-    data: dict = None, status: int = 200, message: str = ""
+    data = None, status: int = 200, message: str = ""
 ) -> Tuple[Response, int]:
     """Wraps response in a consistent format throughout the API.
 
@@ -24,9 +24,9 @@ def create_response(
     :param message <str> optional message
     :returns tuple of Flask Response and int, which is what flask expects for a response
     """
-    if type(data) is not dict and data is not None:
+    if type(data) is None:
         raise TypeError("Data should be a dictionary 😞")
-
+    # print(users.initial_db_state)
     response = {
         "code": status,
         "success": 200 <= status < 300,
@@ -51,6 +51,51 @@ def mirror(name):
     data = {"name": name}
     return create_response(data)
 
+@app.get("/users")
+def show_users():
+    data = db.get("users")
+    return create_response(data)
+    
+@app.get("/users/<id>")
+def show_user(id):
+    data = db.getById("users",int(id))
+    if data is not None:
+        return create_response(data)
+    
+    return {"message":"No user found","status":404}
+
+@app.route("/users/teams")
+def show_user_based_on_team():
+    team  = request.args.get('team', None)
+    data = db.get("users")
+    temp = []
+    for user in data:
+        if(user["team"] == team):
+            temp.append(user)
+    print(temp)
+    return create_response(temp)
+            
+@app.route('/users/createuser', methods = ['POST'])
+def createuser():
+   data  = request.json
+   
+   return create_response(db.create("users",data))
+
+
+@app.route('/users/<id>', methods=['DELETE'])
+def delete(id):
+    if(db.getById("users",int(id)) is not None):
+        db.deleteById("users",int(id))
+        return {"status": 200, "message": "User Deleted Sucessfully"}
+    
+    return ({"status": 404, "message":"user not found"})
+
+@app.route('/users/<id>', methods=['PUT'])
+def update(id):
+    if(db.updateById("users",int(id),request.json)):
+        return create_response({"message": "User Updated"})
+    
+    return ({"status": 404, "message":"user not found"})
 
 # TODO: Implement the rest of the API here!
 
