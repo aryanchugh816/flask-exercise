@@ -2,7 +2,7 @@ from typing import Tuple
 
 from flask import Flask, jsonify, request, Response
 import mockdb.mockdb_interface as db
-import mockdb.dummy_data as users
+
 app = Flask(__name__)
 
 
