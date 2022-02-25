@@ -2,3 +2,6 @@ Flask>=2.0.3,<2.1.0
 requests>=2.27.1,<2.28.0
 pytest>=7.0.1,<7.1.0
 black>=22.1.0,<22.2.0
+flask-sqlalchemy
+Flask-Migrate
+psycopg2-binary
