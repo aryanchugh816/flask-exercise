@@ -1,40 +1,31 @@
 from typing import Tuple
+from unicodedata import name
 
 from flask import Flask, jsonify, request, Response
 import mockdb.mockdb_interface as db
 
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:postgres@database:5432/users_db"
 
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
-def create_response(
-    data: dict = None, status: int = 200, message: str = ""
-) -> Tuple[Response, int]:
-    """Wraps response in a consistent format throughout the API.
+class UsersModel(db.Model):
 
-    Format inspired by https://medium.com/@shazow/how-i-design-json-api-responses-71900f00f2db
-    Modifications included:
-    - make success a boolean since there's only 2 values
-    - make message a single string since we will only use one message per response
-    IMPORTANT: data must be a dictionary where:
-    - the key is the name of the type of data
-    - the value is the data itself
+    __tablename__ = 'users'
 
-    :param data <str> optional data
-    :param status <int> optional status code, defaults to 200
-    :param message <str> optional message
-    :returns tuple of Flask Response and int, which is what flask expects for a response
-    """
-    if type(data) is not dict and data is not None:
-        raise TypeError("Data should be a dictionary 😞")
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String())
+    age = db.Column(db.Integer())
+    team = db.Column(db.String())
 
-    response = {
-        "code": status,
-        "success": 200 <= status < 300,
-        "message": message,
-        "result": data,
-    }
-    return jsonify(response), status
-
+    def __init__(self,name,age,team) -> None:
+        self.name = name
+        self.age = age
+        self.team = team
+    
 
 """
 ~~~~~~~~~~~~ API ~~~~~~~~~~~~
@@ -43,14 +34,86 @@ def create_response(
 
 @app.route("/")
 def hello_world():
-    return create_response({"content": "hello world!"})
+    return ({"content": "hello world!"})
 
 
-@app.route("/mirror/<name>")
-def mirror(name):
-    data = {"name": name}
-    return create_response(data)
+@app.route('/users', methods=['POST', 'GET'])
+def handle_users():
+    if request.method == 'POST':
+        if request.is_json:
+            data = request.get_json()
+            new_user = UsersModel(name=data['name'], age=data['age'], team=data['team'])
+            db.session.add(new_user)
+            db.session.commit()
+            return {"message": f"user {new_user.name} has been created successfully."}
+        else:
+            return {"error": "The request payload is not in JSON format"}
 
+    elif request.method == 'GET':
+        users = UsersModel.query.all()
+        results = [
+            {
+                "id": user.id,
+                "name": user.name,
+                "age": user.age,
+                "team": user.name
+            } for user in users]
+
+        return {"count": len(results), "users": results}
+
+    
+@app.route("/users/<id>", methods=['GET'])
+def show_user(id):
+    data = UsersModel.query.all()
+    print(data[0].id)
+    for user in data:
+        if(user.id == int(id)):
+             result = [
+            {
+                "id": user.id,
+                "name": user.name,
+                "age": user.age,
+                "team": user.team
+            }
+             ]
+             return {"user": result}
+    
+        
+    
+    return {"message":"No user found","status":404}
+
+# @app.route("/users/teams")
+# def show_user_based_on_team():
+#     team  = request.args.get('team', None)
+#     data = db.get("users")
+#     temp = []
+#     for user in data:
+#         if(user["team"] == team):
+#             temp.append(user)
+#     print(temp)
+#     return create_response(temp)
+            
+# @app.route('/users/createuser', methods = ['POST'])
+# def createuser():
+#    data  = request.json
+#    print(data)
+#    return create_response(db.create("users",data))
+
+
+# @app.route('/users/<id>', methods=['DELETE'])
+# def delete(id):
+#     if(db.getById("users",int(id)) is not None):
+#         db.deleteById("users",int(id))
+#         return {"status": 200, "message": "User Deleted Sucessfully"}
+    
+#     return ({"status": 404, "message":"user not found"})
+
+# @app.route('/users/<id>', methods=['PUT'])
+# def update(id):
+#     if(db.updateById("users",int(id),request.json)):
+#         return create_response({"message": "User Updated"})
+    
+#     return ({"status": 404, "message":"user not found"})
 
 # TODO: Implement the rest of the API here!
 
@@ -58,4 +121,4 @@ def mirror(name):
 ~~~~~~~~~~~~ END API ~~~~~~~~~~~~
 """
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host = "0.0.0.0")

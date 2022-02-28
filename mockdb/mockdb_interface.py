@@ -9,7 +9,7 @@ def get(type):
 
 
 def getById(type, id):
-    return next((i for i in get(type) if i["id"] == id), None)
+    return next((i for i in get(type) if i["id"] == id),None)
 
 
 def create(type, payload):
