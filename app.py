@@ -21,10 +21,9 @@ class UsersModel(db.Model):
     age = db.Column(db.Integer())
     team = db.Column(db.String())
 
-    def __init__(self,id,name,age,team) -> None:
+    def __init__(self,name,age,team) -> None:
         self.name = name
         self.age = age
-        self.id = id
         self.team = team
     
 
@@ -43,7 +42,7 @@ def handle_users():
     if request.method == 'POST':
         if request.is_json:
             data = request.get_json()
-            new_user = UsersModel(name=data['name'], age=data['age'], team=data['team'], id=data['id'])
+            new_user = UsersModel(name=data['name'], age=data['age'], team=data['team'])
             db.session.add(new_user)
             db.session.commit()
             return {"message": f"user {new_user.name} has been created successfully."}
@@ -122,4 +121,4 @@ def show_user(id):
 ~~~~~~~~~~~~ END API ~~~~~~~~~~~~
 """
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True, host = "0.0.0.0")
